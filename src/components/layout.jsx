@@ -1,0 +1,33 @@
+import React from "react";
+import { getSystemInfo } from "zmp-sdk";
+import {
+  AnimationRoutes,
+  App,
+  Route,
+  SnackbarProvider,
+  ZMPRouter,
+} from "zmp-ui";
+
+// 1. Import trang HomePage và UserInfoPage
+import HomePage from "../pages/index";
+import UserInfoPage from "../pages/user-info"; // Đảm bảo bạn đã đổi tên file thành .jsx
+
+const Layout = () => {
+  return (
+    <App theme={getSystemInfo().zaloTheme}>
+      <SnackbarProvider>
+        <ZMPRouter>
+          <AnimationRoutes>
+            {/* Trang chủ */}
+            <Route path="/" element={<HomePage />} />
+            
+            {/* 2. Thêm Route cho trang User Info */}
+            <Route path="/user-info" element={<UserInfoPage />} />
+          </AnimationRoutes>
+        </ZMPRouter>
+      </SnackbarProvider>
+    </App>
+  );
+};
+
+export default Layout;

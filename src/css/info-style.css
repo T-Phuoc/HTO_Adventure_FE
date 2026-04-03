@@ -1,0 +1,153 @@
+/* 1. Background & Overall */
+.user-info-page {
+  position: relative;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background-size: cover;
+  background-position: center;
+}
+
+/* 2. Header Logo - Hiệu ứng Glow nhẹ */
+.user-info-header {
+  margin-top: 45px;
+  margin-bottom: 5px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: float 4s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-10px) scale(1.02); }
+}
+
+.logo-text-large {
+  color: #3a9edb;
+  font-weight: 900;
+  font-size: 46px;
+  line-height: 0.7;
+  /* Hiệu ứng đổ bóng chữ chuyên nghiệp */
+  text-shadow: 0 4px 0px #ffffff, 0 8px 15px rgba(58, 158, 219, 0.4);
+}
+
+/* 3. Form Card - Phong cách Glassmorphism nhẹ */
+.user-info-card {
+  background: rgba(255, 255, 255, 0.95);
+  margin: 105px 10px 5px;
+  padding: 5px 20px 10px;
+  border-radius: 3rem;
+  border: 4px solid #ffffff; 
+  box-shadow: 
+    0 20px 40px rgba(58, 158, 219, 0.15),
+    0 10px 10px rgba(211, 254, 252, 0.5);
+  position: relative;
+  z-index: 10;
+}
+
+/* Mascot - Tăng size và đổ bóng bay bổng */
+.mascot-wrapper {
+  position: absolute;
+  top: -140px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  z-index: 20;
+}
+
+.mascot-img-ui {
+  width: 230px;
+  filter: drop-shadow(0 20px 30px rgba(58, 158, 219, 0.3));
+  animation: mascot-swing 5s ease-in-out infinite;
+}
+
+@keyframes mascot-swing {
+  0%, 100% { transform: rotate(-3deg) translateY(0); }
+  50% { transform: rotate(3deg) translateY(-10px); }
+}
+
+/* 4. TỐI ƯU INPUT - CỰC KỲ SẠCH VÀ ĐẸP */
+.hito-input-custom {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 9999px !important;
+  border: 1px solid #b5dfff !important;
+
+}
+
+.hito-input-custom .zaui-input-affix-wrapper {
+  background-color: #f0f8ff !important; /* Xanh cực nhạt tạo cảm giác sạch sẽ */
+  border: 2px solid #b5dfff !important;
+  border-radius: 20px !important; /* Bo tròn vừa phải cho hiện đại */
+  height: 54px !important;
+  padding: 0 18px !important;
+  box-shadow: inset 0 2px 5px rgba(58, 158, 219, 0.08) !important;
+  transition: all 0.3s ease !important;
+}
+
+/* Hiệu ứng khi đang nhập liệu */
+.hito-input-custom .zaui-input-affix-wrapper-focused {
+  border-color: #3a9edb !important;
+  background-color: #ffffff !important;
+  box-shadow: 0 0 15px rgba(58, 158, 219, 0.15) !important;
+  transform: scale(1.01);
+}
+
+.hito-input-custom input {
+  font-weight: 700 !important;
+  color: #0e4b75 !important;
+  font-size: 15px !important;
+}
+
+/* 5. Cụm nút 3D Đẳng Cấp */
+.nav-buttons-container {
+  display: flex;
+  gap: 15px;
+  padding: 15px 24px 35px;
+  margin-top: auto;
+}
+
+/* Nút Quay Lại - Phong cách Soft-3D */
+.btn-3d-secondary {
+  flex: 1;
+  height: 60px !important;
+  background: #ffffff !important;
+  border: 2px solid #b5dfff !important;
+  border-bottom: 5px solid #b5dfff !important;
+  border-radius: 9999px !important;
+  color: #0e4b75 !important;
+  font-weight: 900 !important;
+  text-transform: uppercase;
+}
+
+/* Nút Tiếp Tục - Hiệu ứng Gradient rực rỡ kích thích click */
+.btn-3d-primary {
+  flex: 1;
+  height: 60px !important;
+  background: linear-gradient(180deg, #fce27a 0%, #f9d423 100%) !important;
+  border: 2px solid #c58f1f !important;
+  border-bottom: 6px solid #c58f1f !important;
+  border-radius: 9999px !important;
+  color: #0e4b75 !important;
+  font-weight: 900 !important;
+  text-transform: uppercase;
+  box-shadow: 0 10px 20px rgba(252, 226, 122, 0.4) !important;
+}
+
+.btn-3d-secondary:active, .btn-3d-primary:active {
+  transform: translateY(4px);
+  border-bottom-width: 2px !important;
+}
+
+/* Box đồng ý */
+.agree-box-custom {
+  background: rgba(224, 242, 255, 0.4);
+  padding: 12px 15px;
+  border-radius: 1.5rem;
+  border: 1px dashed #3a9edb;
+  margin-top: 10px;
+}
