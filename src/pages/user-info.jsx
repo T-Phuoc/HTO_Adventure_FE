@@ -57,8 +57,7 @@ function UserInfoPage() {
         <Button
           className="btn-3d-primary"
           onClick={() => {
-            if (!agree) alert("Vui lòng tích chọn đồng ý điều khoản!");
-            else navigate("/game");
+            navigate("/game");
           }}
         >
           Tiếp tục

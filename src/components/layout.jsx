@@ -10,7 +10,8 @@ import {
 
 // 1. Import trang HomePage và UserInfoPage
 import HomePage from "../pages/index";
-import UserInfoPage from "../pages/user-info"; // Đảm bảo bạn đã đổi tên file thành .jsx
+import UserInfoPage from "../pages/user-info";
+import GamePage from "../pages/game"; // Thêm dòng này
 
 const Layout = () => {
   return (
@@ -23,6 +24,9 @@ const Layout = () => {
             
             {/* 2. Thêm Route cho trang User Info */}
             <Route path="/user-info" element={<UserInfoPage />} />
+
+            {/* 3. Thêm Route cho trang Game */}
+            <Route path="/game" element={<GamePage />} />
           </AnimationRoutes>
         </ZMPRouter>
       </SnackbarProvider>
