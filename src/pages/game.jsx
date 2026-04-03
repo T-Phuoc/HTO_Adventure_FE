@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Box, Button, Page, Text } from "zmp-ui";
 import { useNavigate } from "react-router-dom";
-import mascot from "../assets/mascot-CdQs06Pp.png";
+import mascot from "../assets/game.png";
 import bgMain from "../assets/bg_main.png";
+import "../css/game-style.css";
 
 const GamePage = () => {
   const navigate = useNavigate();
@@ -12,16 +13,19 @@ const GamePage = () => {
   const [highScore, setHighScore] = useState(0);
 
   // Game constants
-  const GRAVITY = 0.2;
-  const JUMP_STRENGTH = -5;
-  const PIPE_WIDTH = 40;
-  const PIPE_GAP = 120;
-  const PIPE_SPEED = 2;
-  const BIRD_SIZE = 40;
+  const GRAVITY = 0.4; // Trọng lực mạnh hơn cho phong cách Dino
+  const JUMP_STRENGTH = -12; // Lực nhảy mạnh hơn
+  const PIPE_WIDTH = 50; // Chiều rộng vật cản
+  const BASE_PIPE_SPEED = 4.5; // Tốc độ cơ bản nhanh hơn
+  const FISH_SIZE = 100; // Tăng kích thước nhân vật lên 100
+  const PIPE_SPACING = 400; // Khoảng cách giữa các vật cản
+  const HITBOX_PADDING = 20; // Vùng đệm va chạm
+  const GROUND_HEIGHT = 80; // Độ cao của mặt đất từ đáy canvas
 
   // Game state refs (for the game loop)
-  const birdY = useRef(200);
-  const birdVelocity = useRef(0);
+  const fishY = useRef(0);
+  const fishVelocity = useRef(0);
+  const fishRotation = useRef(0);
   const pipes = useRef([]);
   const frameId = useRef(null);
 
@@ -31,16 +35,25 @@ const GamePage = () => {
   }, []);
 
   const resetGame = () => {
-    birdY.current = 200;
-    birdVelocity.current = 0;
+    const canvas = canvasRef.current;
+    if (canvas) {
+      fishY.current = canvas.height - GROUND_HEIGHT - FISH_SIZE;
+    }
+    fishVelocity.current = 0;
+    fishRotation.current = 0;
     pipes.current = [];
     setScore(0);
     setGameState("PLAYING");
   };
 
   const jump = () => {
-    if (gameState === "PLAYING") {
-      birdVelocity.current = JUMP_STRENGTH;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const groundY = canvas.height - GROUND_HEIGHT - FISH_SIZE;
+    // Chỉ cho phép nhảy khi đang ở trên mặt đất (phong cách Dino)
+    if (gameState === "PLAYING" && Math.abs(fishY.current - groundY) < 5) {
+      fishVelocity.current = JUMP_STRENGTH;
     } else if (gameState === "START" || gameState === "GAME_OVER") {
       resetGame();
     }
@@ -69,29 +82,55 @@ const GamePage = () => {
     const update = () => {
       if (gameState !== "PLAYING") return;
 
-      // Update bird
-      birdVelocity.current += GRAVITY;
-      birdY.current += birdVelocity.current;
+      const groundY = canvas.height - GROUND_HEIGHT - FISH_SIZE;
 
-      // Check floor/ceiling collision
-      if (birdY.current + BIRD_SIZE > canvas.height || birdY.current < 0) {
-        setGameState("GAME_OVER");
+      // Update fish gravity and movement
+      fishVelocity.current += GRAVITY;
+      fishY.current += fishVelocity.current;
+
+      // Giới hạn mặt đất
+      if (fishY.current >= groundY) {
+        fishY.current = groundY;
+        fishVelocity.current = 0;
+        fishRotation.current = 0; // Khi chạm đất thì không xoay
+      } else {
+        // Xoay nhân vật dựa trên vận tốc khi nhảy/rơi
+        fishRotation.current = (fishVelocity.current * Math.PI) / 90; // Xoay tối đa ~45 độ
       }
 
-      // Update pipes
-      if (pipes.current.length === 0 || pipes.current[pipes.current.length - 1].x < canvas.width - 200) {
-        const topHeight = Math.random() * (canvas.height - PIPE_GAP - 100) + 50;
-        pipes.current.push({ x: canvas.width, topHeight, passed: false });
+      // Update pipes (obstacles on ground)
+      if (pipes.current.length === 0 || pipes.current[pipes.current.length - 1].x < canvas.width - PIPE_SPACING) {
+        // Chiều cao vật cản ngẫu nhiên
+        const obstacleHeight = Math.random() * 50 + 60; // 60px to 110px
+        pipes.current.push({ x: canvas.width, height: obstacleHeight, passed: false });
       }
+
+      // Tính toán tốc độ hiện tại dựa trên điểm số (tăng tốc mỗi 5 điểm)
+      const currentSpeed = BASE_PIPE_SPEED + Math.floor(score / 5) * 0.5;
 
       pipes.current.forEach((pipe, index) => {
-        pipe.x -= PIPE_SPEED;
+        pipe.x -= currentSpeed;
 
         // Collision detection
+        const fishHitbox = {
+          x: 100 + HITBOX_PADDING,
+          y: fishY.current + HITBOX_PADDING,
+          w: FISH_SIZE - HITBOX_PADDING * 2,
+          h: FISH_SIZE - HITBOX_PADDING * 2
+        };
+
+        const pipeHitbox = {
+          x: pipe.x,
+          y: canvas.height - GROUND_HEIGHT - pipe.height,
+          w: PIPE_WIDTH,
+          h: pipe.height
+        };
+
         if (
-          100 < pipe.x + PIPE_WIDTH &&
-          100 + BIRD_SIZE > pipe.x &&
-          (birdY.current < pipe.topHeight || birdY.current + BIRD_SIZE > pipe.topHeight + PIPE_GAP)
+          fishHitbox.x < pipeHitbox.x + pipeHitbox.w &&
+          fishHitbox.x + fishHitbox.w > pipeHitbox.x &&
+          fishHitbox.y < pipeHitbox.y + pipeHitbox.h &&
+          fishHitbox.y + fishHitbox.h > pipeHitbox.y
         ) {
           setGameState("GAME_OVER");
         }
@@ -112,26 +151,54 @@ const GamePage = () => {
     const draw = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Draw background (optional, could be a simple color or image)
+      // Draw background
       ctx.fillStyle = "#70c5ce";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Draw pipes
-      ctx.fillStyle = "#2ecc71";
+      // Draw ground
+      ctx.fillStyle = "#3a9edb";
+      ctx.fillRect(0, canvas.height - GROUND_HEIGHT, canvas.width, GROUND_HEIGHT);
+      ctx.strokeStyle = "#FFFFFF";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(0, canvas.height - GROUND_HEIGHT, canvas.width, 2);
+
+      // Draw pipes (icebergs on ground)
       pipes.current.forEach((pipe) => {
-        // Top pipe
-        ctx.fillRect(pipe.x, 0, PIPE_WIDTH, pipe.topHeight);
-        // Bottom pipe
-        ctx.fillRect(pipe.x, pipe.topHeight + PIPE_GAP, PIPE_WIDTH, canvas.height - (pipe.topHeight + PIPE_GAP));
+        const pipeY = canvas.height - GROUND_HEIGHT - pipe.height;
+        const gradient = ctx.createLinearGradient(pipe.x, pipeY, pipe.x + PIPE_WIDTH, pipeY);
+        gradient.addColorStop(0, "#ADD8E6"); // Light blue
+        gradient.addColorStop(0.5, "#FFFFFF"); // White
+        gradient.addColorStop(1, "#ADD8E6"); // Light blue
+        ctx.fillStyle = gradient;
+
+        // Draw iceberg triangle/trapezoid
+        ctx.beginPath();
+        ctx.moveTo(pipe.x, canvas.height - GROUND_HEIGHT);
+        ctx.lineTo(pipe.x + PIPE_WIDTH / 2, pipeY);
+        ctx.lineTo(pipe.x + PIPE_WIDTH, canvas.height - GROUND_HEIGHT);
+        ctx.closePath();
+        ctx.fill();
+
+        // Border
+        ctx.strokeStyle = "#87CEEB";
+        ctx.lineWidth = 2;
+        ctx.stroke();
       });
 
-      // Draw bird (mascot)
+      // Draw fish (mascot) with rotation
+      ctx.save();
+      const centerX = 100 + FISH_SIZE / 2;
+      const centerY = fishY.current + FISH_SIZE / 2;
+      ctx.translate(centerX, centerY);
+      ctx.rotate(fishRotation.current);
+
       if (mascotImg.current.complete) {
-        ctx.drawImage(mascotImg.current, 100, birdY.current, BIRD_SIZE, BIRD_SIZE);
+        ctx.drawImage(mascotImg.current, -FISH_SIZE / 2, -FISH_SIZE / 2, FISH_SIZE, FISH_SIZE);
       } else {
         ctx.fillStyle = "#f1c40f";
-        ctx.fillRect(100, birdY.current, BIRD_SIZE, BIRD_SIZE);
+        ctx.fillRect(-FISH_SIZE / 2, -FISH_SIZE / 2, FISH_SIZE, FISH_SIZE);
       }
+      ctx.restore();
     };
 
     const loop = () => {
