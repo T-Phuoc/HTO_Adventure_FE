@@ -2,6 +2,11 @@ import React, { useState, useEffect, useRef } from "react";
 import { Box, Button, Page, Text } from "zmp-ui";
 import { useNavigate } from "react-router-dom";
 import mascot from "../assets/game.png";
+import gameBackground1 from "../assets/game-background-1.png";
+import gameBackground2 from "../assets/game-background-2.png";
+import gameKoi from "../assets/game-koi.png";
+import gameShark from "../assets/game-shark.png";
+import gameOceanWaves from "../assets/game-ocean-waves.png";
 import bgMain from "../assets/bg_main.png";
 import "../css/game-style.css";
 
@@ -13,35 +18,53 @@ const GamePage = () => {
   const [highScore, setHighScore] = useState(0);
 
   // Game constants
-  const GRAVITY = 0.4; // Trọng lực mạnh hơn cho phong cách Dino
-  const JUMP_STRENGTH = -12; // Lực nhảy mạnh hơn
-  const PIPE_WIDTH = 50; // Chiều rộng vật cản
-  const BASE_PIPE_SPEED = 4.5; // Tốc độ cơ bản nhanh hơn
-  const FISH_SIZE = 100; // Tăng kích thước nhân vật lên 100
-  const PIPE_SPACING = 400; // Khoảng cách giữa các vật cản
-  const HITBOX_PADDING = 20; // Vùng đệm va chạm
-  const GROUND_HEIGHT = 80; // Độ cao của mặt đất từ đáy canvas
+  const GRAVITY = 0.4; // Trọng lực phong cách Dino
+  const JUMP_STRENGTH = -12; // Lực nhảy
+  const PIPE_WIDTH = 80; // Chiều rộng sóng biển
+  const BASE_PIPE_SPEED = 4.5; // Tốc độ cơ bản
+  const FISH_SIZE = 120; // Tăng kích thước nhân vật lên 120
+  const PIPE_SPACING = 450; // Tăng khoảng cách vật cản để dễ hơn
+  const HITBOX_PADDING = 25; // Vùng đệm va chạm cho nhân vật to
+  const GROUND_HEIGHT = 60; // Độ cao mặt đất
 
   // Game state refs (for the game loop)
   const fishY = useRef(0);
   const fishVelocity = useRef(0);
   const fishRotation = useRef(0);
   const pipes = useRef([]);
+  const decoFish = useRef([]); // Cá trang trí (Koi, Shark)
+  const bgX1 = useRef(0); // Vị trí X của background lớp 1
+  const bgX2 = useRef(0); // Vị trí X của background lớp 2
   const frameId = useRef(null);
 
+  // Image refs
   const mascotImg = useRef(new Image());
+  const backgroundImg1 = useRef(new Image());
+  const backgroundImg2 = useRef(new Image());
+  const koiImg = useRef(new Image());
+  const sharkImg = useRef(new Image());
+  const waveImg = useRef(new Image());
+
   useEffect(() => {
     mascotImg.current.src = mascot;
+    backgroundImg1.current.src = gameBackground1;
+    backgroundImg2.current.src = gameBackground2;
+    koiImg.current.src = gameKoi;
+    sharkImg.current.src = gameShark;
+    waveImg.current.src = gameOceanWaves;
   }, []);
 
   const resetGame = () => {
     const canvas = canvasRef.current;
     if (canvas) {
-      fishY.current = canvas.height - GROUND_HEIGHT - FISH_SIZE;
+      fishY.current = canvas.height - GROUND_HEIGHT - FISH_SIZE + 10;
     }
     fishVelocity.current = 0;
     fishRotation.current = 0;
     pipes.current = [];
+    decoFish.current = [];
+    bgX1.current = 0;
+    bgX2.current = 0;
     setScore(0);
     setGameState("PLAYING");
   };
@@ -50,9 +73,8 @@ const GamePage = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     
-    const groundY = canvas.height - GROUND_HEIGHT - FISH_SIZE;
-    // Chỉ cho phép nhảy khi đang ở trên mặt đất (phong cách Dino)
-    if (gameState === "PLAYING" && Math.abs(fishY.current - groundY) < 5) {
+    const groundY = canvas.height - GROUND_HEIGHT - FISH_SIZE + 10;
+    if (gameState === "PLAYING" && Math.abs(fishY.current - groundY) < 10) {
       fishVelocity.current = JUMP_STRENGTH;
     } else if (gameState === "START" || gameState === "GAME_OVER") {
       resetGame();
@@ -75,40 +97,61 @@ const GamePage = () => {
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     
-    // Initial size
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
     const update = () => {
       if (gameState !== "PLAYING") return;
 
-      const groundY = canvas.height - GROUND_HEIGHT - FISH_SIZE;
+      const groundY = canvas.height - GROUND_HEIGHT - FISH_SIZE + 10;
 
       // Update fish gravity and movement
       fishVelocity.current += GRAVITY;
       fishY.current += fishVelocity.current;
 
-      // Giới hạn mặt đất
       if (fishY.current >= groundY) {
         fishY.current = groundY;
         fishVelocity.current = 0;
-        fishRotation.current = 0; // Khi chạm đất thì không xoay
+        fishRotation.current = 0;
       } else {
-        // Xoay nhân vật dựa trên vận tốc khi nhảy/rơi
-        fishRotation.current = (fishVelocity.current * Math.PI) / 90; // Xoay tối đa ~45 độ
+        // Xoay nhân vật: nhảy lên ngước đầu, rơi xuống chúi đầu
+        fishRotation.current = (fishVelocity.current * Math.PI) / 60;
       }
 
-      // Update pipes (obstacles on ground)
+      // Update pipes (ocean waves)
       if (pipes.current.length === 0 || pipes.current[pipes.current.length - 1].x < canvas.width - PIPE_SPACING) {
-        // Chiều cao vật cản ngẫu nhiên
-        const obstacleHeight = Math.random() * 50 + 60; // 60px to 110px
-        pipes.current.push({ x: canvas.width, height: obstacleHeight, passed: false });
+        const waveHeight = Math.random() * 40 + 70; // 70px to 110px
+        pipes.current.push({ x: canvas.width, height: waveHeight, passed: false });
       }
 
-      // Tính toán tốc độ hiện tại dựa trên điểm số (tăng tốc mỗi 5 điểm)
+      // Update decorative fish (Koi, Shark)
+      if (Math.random() < 0.005 && decoFish.current.length < 3) {
+        const type = Math.random() > 0.5 ? 'koi' : 'shark';
+        const size = type === 'shark' ? 120 : 80;
+        decoFish.current.push({
+          x: canvas.width,
+          y: Math.random() * (canvas.height - 300) + 50,
+          speed: Math.random() * 2 + 1,
+          type: type,
+          size: size
+        });
+      }
+
       const currentSpeed = BASE_PIPE_SPEED + Math.floor(score / 5) * 0.5;
 
-      pipes.current.forEach((pipe, index) => {
+      // Update background scrolling positions
+      bgX1.current -= currentSpeed * 0.3; // Lớp xa cuộn chậm
+      bgX2.current -= currentSpeed * 0.6; // Lớp gần cuộn nhanh hơn
+      
+      // Reset positions to loop
+      if (bgX1.current <= -canvas.width) bgX1.current = 0;
+      if (bgX2.current <= -canvas.width) bgX2.current = 0;
+
+      // Move deco fish
+      decoFish.current.forEach(f => f.x -= currentSpeed * 0.7);
+      decoFish.current = decoFish.current.filter(f => f.x > -200);
+
+      pipes.current.forEach((pipe) => {
         pipe.x -= currentSpeed;
 
         // Collision detection
@@ -120,10 +163,10 @@ const GamePage = () => {
         };
 
         const pipeHitbox = {
-          x: pipe.x,
-          y: canvas.height - GROUND_HEIGHT - pipe.height,
-          w: PIPE_WIDTH,
-          h: pipe.height
+          x: pipe.x + 10, // Giúp dễ hơn
+          y: canvas.height - GROUND_HEIGHT - pipe.height + 15,
+          w: PIPE_WIDTH - 20,
+          h: pipe.height - 15
         };
 
         if (
@@ -135,14 +178,12 @@ const GamePage = () => {
           setGameState("GAME_OVER");
         }
 
-        // Score update
         if (!pipe.passed && pipe.x < 100) {
           pipe.passed = true;
           setScore((s) => s + 1);
         }
       });
 
-      // Remove off-screen pipes
       if (pipes.current[0] && pipes.current[0].x < -PIPE_WIDTH) {
         pipes.current.shift();
       }
@@ -151,41 +192,48 @@ const GamePage = () => {
     const draw = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Draw background
-      ctx.fillStyle = "#70c5ce";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      // Draw scrolling backgrounds (parallax)
+      // Lớp 1 (xa)
+      if (backgroundImg1.current.complete) {
+        ctx.drawImage(backgroundImg1.current, bgX1.current, 0, canvas.width, canvas.height);
+        ctx.drawImage(backgroundImg1.current, bgX1.current + canvas.width, 0, canvas.width, canvas.height);
+      } else {
+        ctx.fillStyle = "#70c5ce";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
 
-      // Draw ground
-      ctx.fillStyle = "#3a9edb";
-      ctx.fillRect(0, canvas.height - GROUND_HEIGHT, canvas.width, GROUND_HEIGHT);
-      ctx.strokeStyle = "#FFFFFF";
-      ctx.lineWidth = 2;
-      ctx.strokeRect(0, canvas.height - GROUND_HEIGHT, canvas.width, 2);
+      // Lớp 2 (gần)
+      if (backgroundImg2.current.complete) {
+        ctx.drawImage(backgroundImg2.current, bgX2.current, 0, canvas.width, canvas.height);
+        ctx.drawImage(backgroundImg2.current, bgX2.current + canvas.width, 0, canvas.width, canvas.height);
+      }
 
-      // Draw pipes (icebergs on ground)
-      pipes.current.forEach((pipe) => {
-        const pipeY = canvas.height - GROUND_HEIGHT - pipe.height;
-        const gradient = ctx.createLinearGradient(pipe.x, pipeY, pipe.x + PIPE_WIDTH, pipeY);
-        gradient.addColorStop(0, "#ADD8E6"); // Light blue
-        gradient.addColorStop(0.5, "#FFFFFF"); // White
-        gradient.addColorStop(1, "#ADD8E6"); // Light blue
-        ctx.fillStyle = gradient;
-
-        // Draw iceberg triangle/trapezoid
-        ctx.beginPath();
-        ctx.moveTo(pipe.x, canvas.height - GROUND_HEIGHT);
-        ctx.lineTo(pipe.x + PIPE_WIDTH / 2, pipeY);
-        ctx.lineTo(pipe.x + PIPE_WIDTH, canvas.height - GROUND_HEIGHT);
-        ctx.closePath();
-        ctx.fill();
-
-        // Border
-        ctx.strokeStyle = "#87CEEB";
-        ctx.lineWidth = 2;
-        ctx.stroke();
+      // Draw decorative fish
+      decoFish.current.forEach(f => {
+        const img = f.type === 'koi' ? koiImg.current : sharkImg.current;
+        if (img.complete) {
+          ctx.globalAlpha = 0.6; // Làm mờ nhẹ để sinh động
+          ctx.drawImage(img, f.x, f.y, f.size, f.size * 0.6);
+          ctx.globalAlpha = 1.0;
+        }
       });
 
-      // Draw fish (mascot) with rotation
+      // Draw ground (Ocean surface/bottom)
+      ctx.fillStyle = "rgba(58, 158, 219, 0.3)";
+      ctx.fillRect(0, canvas.height - GROUND_HEIGHT, canvas.width, GROUND_HEIGHT);
+
+      // Draw obstacles (Ocean waves)
+      pipes.current.forEach((pipe) => {
+        const pipeY = canvas.height - GROUND_HEIGHT - pipe.height;
+        if (waveImg.current.complete) {
+          ctx.drawImage(waveImg.current, pipe.x, pipeY, PIPE_WIDTH, pipe.height + 10);
+        } else {
+          ctx.fillStyle = "#FFFFFF";
+          ctx.fillRect(pipe.x, pipeY, PIPE_WIDTH, pipe.height);
+        }
+      });
+
+      // Draw fish character with rotation
       ctx.save();
       const centerX = 100 + FISH_SIZE / 2;
       const centerY = fishY.current + FISH_SIZE / 2;
@@ -210,11 +258,11 @@ const GamePage = () => {
     if (gameState === "PLAYING") {
       frameId.current = requestAnimationFrame(loop);
     } else {
-      draw(); // Draw static frame
+      draw();
     }
 
     return () => cancelAnimationFrame(frameId.current);
-  }, [gameState]);
+  }, [gameState, score]);
 
   useEffect(() => {
     if (score > highScore) {
@@ -225,30 +273,21 @@ const GamePage = () => {
   return (
     <Page className="game-page-container p-0 overflow-hidden" style={{ backgroundImage: `url(${bgMain})`, backgroundSize: 'cover' }}>
       <Box className="relative w-full h-full flex flex-col items-center justify-center">
-        {/* Score Display */}
         <Box className="absolute top-10 left-0 w-full text-center z-10 pointer-events-none">
           <Text className="text-white text-4xl font-black italic drop-shadow-lg">
             {score}
           </Text>
         </Box>
 
-        {/* Canvas Area */}
-        <Box 
-          className="w-full h-full bg-transparent"
-          onClick={jump}
-        >
-          <canvas
-            ref={canvasRef}
-            className="block w-full h-full"
-          />
+        <Box className="w-full h-full bg-transparent" onClick={jump}>
+          <canvas ref={canvasRef} className="block w-full h-full" />
         </Box>
 
-        {/* Overlay for Start/Game Over */}
         {gameState !== "PLAYING" && (
           <Box className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center z-20 p-6">
             <Box className="bg-white rounded-3xl p-8 w-full max-w-xs text-center shadow-2xl">
               <Text className="text-[#0e4b75] font-black text-3xl uppercase italic mb-4">
-                {gameState === "START" ? "HITO ADVENTURE" : "GAME OVER"}
+                {gameState === "START" ? "HITO OCEAN" : "GAME OVER"}
               </Text>
               
               {gameState === "GAME_OVER" && (
@@ -261,24 +300,15 @@ const GamePage = () => {
 
               {gameState === "START" && (
                 <Text className="text-gray-600 font-medium mb-8">
-                  Chạm vào màn hình để nhảy và vượt qua các chướng ngại vật!
+                  Chạm để nhảy qua những con sóng dữ!
                 </Text>
               )}
 
               <Box className="space-y-3">
-                <Button 
-                  fullWidth 
-                  className="bg-[#3a9edb] rounded-full font-bold h-12 text-lg shadow-lg"
-                  onClick={resetGame}
-                >
+                <Button fullWidth className="bg-[#3a9edb] rounded-full font-bold h-12 text-lg shadow-lg" onClick={resetGame}>
                   {gameState === "START" ? "BẮT ĐẦU" : "CHƠI LẠI"}
                 </Button>
-                <Button 
-                  fullWidth 
-                  variant="secondary"
-                  className="rounded-full font-bold h-12 text-gray-500"
-                  onClick={() => navigate("/")}
-                >
+                <Button fullWidth variant="secondary" className="rounded-full font-bold h-12 text-gray-500" onClick={() => navigate("/")}>
                   VỀ TRANG CHỦ
                 </Button>
               </Box>
