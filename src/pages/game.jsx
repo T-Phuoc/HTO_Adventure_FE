@@ -7,310 +7,223 @@ import gameBackground2 from "../assets/game-background-2.png";
 import gameKoi from "../assets/game-koi.png";
 import gameShark from "../assets/game-shark.png";
 import gameOceanWaves from "../assets/game-ocean-waves.png";
-import bgMain from "../assets/bg_main.png";
 import "../css/game-style.css";
 
 const GamePage = () => {
   const navigate = useNavigate();
   const canvasRef = useRef(null);
-  const [gameState, setGameState] = useState("START"); // START, PLAYING, GAME_OVER
+  const [gameState, setGameState] = useState("START");
   const [score, setScore] = useState(0);
   const [highScore, setHighScore] = useState(0);
+  const [isScoring, setIsScoring] = useState(false);
 
-  // Game constants
-  const GRAVITY = 0.4; // Trọng lực phong cách Dino
-  const JUMP_STRENGTH = -12; // Lực nhảy
-  const PIPE_WIDTH = 80; // Chiều rộng sóng biển
-  const BASE_PIPE_SPEED = 4.5; // Tốc độ cơ bản
-  const FISH_SIZE = 120; // Tăng kích thước nhân vật lên 120
-  const PIPE_SPACING = 450; // Tăng khoảng cách vật cản để dễ hơn
-  const HITBOX_PADDING = 25; // Vùng đệm va chạm cho nhân vật to
-  const GROUND_HEIGHT = 60; // Độ cao mặt đất
+  // Cấu hình vật lý & thông số Game
+  const GRAVITY = 0.4;
+  const JUMP_STRENGTH = -12;
+  const PIPE_WIDTH = 150;
+  const BASE_PIPE_SPEED = 5;
+  const FISH_SIZE = 135;
+  const PIPE_SPACING = 650;
+  const HITBOX_PADDING = 55;
+  const GROUND_HEIGHT = -10;
 
-  // Game state refs (for the game loop)
   const fishY = useRef(0);
   const fishVelocity = useRef(0);
-  const fishRotation = useRef(0);
   const pipes = useRef([]);
-  const decoFish = useRef([]); // Cá trang trí (Koi, Shark)
-  const bgX1 = useRef(0); // Vị trí X của background lớp 1
-  const bgX2 = useRef(0); // Vị trí X của background lớp 2
+  const bubbles = useRef([]);
+  const particles = useRef([]); 
+  const bgX1 = useRef(0);
+  const bgX2 = useRef(0);
   const frameId = useRef(null);
 
-  // Image refs
-  const mascotImg = useRef(new Image());
-  const backgroundImg1 = useRef(new Image());
-  const backgroundImg2 = useRef(new Image());
-  const koiImg = useRef(new Image());
-  const sharkImg = useRef(new Image());
-  const waveImg = useRef(new Image());
+  const imgs = useRef({
+    mascot: new Image(), bg1: new Image(), bg2: new Image(),
+    koi: new Image(), shark: new Image(), wave: new Image()
+  });
 
   useEffect(() => {
-    mascotImg.current.src = mascot;
-    backgroundImg1.current.src = gameBackground1;
-    backgroundImg2.current.src = gameBackground2;
-    koiImg.current.src = gameKoi;
-    sharkImg.current.src = gameShark;
-    waveImg.current.src = gameOceanWaves;
+    imgs.current.mascot.src = mascot;
+    imgs.current.bg1.src = gameBackground1;
+    imgs.current.bg2.src = gameBackground2;
+    imgs.current.koi.src = gameKoi;
+    imgs.current.shark.src = gameShark;
+    imgs.current.wave.src = gameOceanWaves;
+
+    bubbles.current = Array.from({ length: 15 }, () => ({
+      x: Math.random() * window.innerWidth,
+      y: Math.random() * window.innerHeight,
+      size: Math.random() * 3 + 3,
+      speed: Math.random() * 1 + 1,
+      opacity: Math.random() * 0.4
+    }));
   }, []);
 
   const resetGame = () => {
     const canvas = canvasRef.current;
-    if (canvas) {
-      fishY.current = canvas.height - GROUND_HEIGHT - FISH_SIZE + 10;
-    }
-    fishVelocity.current = 0;
-    fishRotation.current = 0;
-    pipes.current = [];
-    decoFish.current = [];
-    bgX1.current = 0;
-    bgX2.current = 0;
-    setScore(0);
-    setGameState("PLAYING");
+    if (canvas) fishY.current = canvas.height - GROUND_HEIGHT - FISH_SIZE + 10;
+    fishVelocity.current = 0; pipes.current = [];
+    particles.current = []; setScore(0); setGameState("PLAYING");
   };
 
   const jump = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    
     const groundY = canvas.height - GROUND_HEIGHT - FISH_SIZE + 10;
-    if (gameState === "PLAYING" && Math.abs(fishY.current - groundY) < 10) {
+    if (gameState === "PLAYING" && Math.abs(fishY.current - groundY) < 15) {
       fishVelocity.current = JUMP_STRENGTH;
-    } else if (gameState === "START" || gameState === "GAME_OVER") {
-      resetGame();
+      for(let i=0; i<8; i++) {
+        particles.current.push({
+          x: 100 + FISH_SIZE/2, y: groundY + FISH_SIZE - 20,
+          vx: Math.random() * 4 - 2, vy: Math.random() * -4 - 2, life: 1.0
+        });
+      }
     }
   };
 
   useEffect(() => {
-    const handleResize = () => {
-      if (canvasRef.current) {
-        canvasRef.current.width = window.innerWidth;
-        canvasRef.current.height = window.innerHeight;
-      }
-    };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    const update = () => {
-      if (gameState !== "PLAYING") return;
-
-      const groundY = canvas.height - GROUND_HEIGHT - FISH_SIZE + 10;
-
-      // Update fish gravity and movement
-      fishVelocity.current += GRAVITY;
-      fishY.current += fishVelocity.current;
-
-      if (fishY.current >= groundY) {
-        fishY.current = groundY;
-        fishVelocity.current = 0;
-        fishRotation.current = 0;
-      } else {
-        // Xoay nhân vật: nhảy lên ngước đầu, rơi xuống chúi đầu
-        fishRotation.current = (fishVelocity.current * Math.PI) / 60;
-      }
-
-      // Update pipes (ocean waves)
-      if (pipes.current.length === 0 || pipes.current[pipes.current.length - 1].x < canvas.width - PIPE_SPACING) {
-        const waveHeight = Math.random() * 40 + 70; // 70px to 110px
-        pipes.current.push({ x: canvas.width, height: waveHeight, passed: false });
-      }
-
-      // Update decorative fish (Koi, Shark)
-      if (Math.random() < 0.005 && decoFish.current.length < 3) {
-        const type = Math.random() > 0.5 ? 'koi' : 'shark';
-        const size = type === 'shark' ? 120 : 80;
-        decoFish.current.push({
-          x: canvas.width,
-          y: Math.random() * (canvas.height - 300) + 50,
-          speed: Math.random() * 2 + 1,
-          type: type,
-          size: size
-        });
-      }
-
-      const currentSpeed = BASE_PIPE_SPEED + Math.floor(score / 5) * 0.5;
-
-      // Update background scrolling positions
-      bgX1.current -= currentSpeed * 0.3; // Lớp xa cuộn chậm
-      bgX2.current -= currentSpeed * 0.6; // Lớp gần cuộn nhanh hơn
-      
-      // Reset positions to loop
-      if (bgX1.current <= -canvas.width) bgX1.current = 0;
-      if (bgX2.current <= -canvas.width) bgX2.current = 0;
-
-      // Move deco fish
-      decoFish.current.forEach(f => f.x -= currentSpeed * 0.7);
-      decoFish.current = decoFish.current.filter(f => f.x > -200);
-
-      pipes.current.forEach((pipe) => {
-        pipe.x -= currentSpeed;
-
-        // Collision detection
-        const fishHitbox = {
-          x: 100 + HITBOX_PADDING,
-          y: fishY.current + HITBOX_PADDING,
-          w: FISH_SIZE - HITBOX_PADDING * 2,
-          h: FISH_SIZE - HITBOX_PADDING * 2
-        };
-
-        const pipeHitbox = {
-          x: pipe.x + 10, // Giúp dễ hơn
-          y: canvas.height - GROUND_HEIGHT - pipe.height + 15,
-          w: PIPE_WIDTH - 20,
-          h: pipe.height - 15
-        };
-
-        if (
-          fishHitbox.x < pipeHitbox.x + pipeHitbox.w &&
-          fishHitbox.x + fishHitbox.w > pipeHitbox.x &&
-          fishHitbox.y < pipeHitbox.y + pipeHitbox.h &&
-          fishHitbox.y + fishHitbox.h > pipeHitbox.y
-        ) {
-          setGameState("GAME_OVER");
-        }
-
-        if (!pipe.passed && pipe.x < 100) {
-          pipe.passed = true;
-          setScore((s) => s + 1);
-        }
-      });
-
-      if (pipes.current[0] && pipes.current[0].x < -PIPE_WIDTH) {
-        pipes.current.shift();
-      }
-    };
-
-    const draw = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // Draw scrolling backgrounds (parallax)
-      // Lớp 1 (xa)
-      if (backgroundImg1.current.complete) {
-        ctx.drawImage(backgroundImg1.current, bgX1.current, 0, canvas.width, canvas.height);
-        ctx.drawImage(backgroundImg1.current, bgX1.current + canvas.width, 0, canvas.width, canvas.height);
-      } else {
-        ctx.fillStyle = "#70c5ce";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-      }
-
-      // Lớp 2 (gần)
-      if (backgroundImg2.current.complete) {
-        ctx.drawImage(backgroundImg2.current, bgX2.current, 0, canvas.width, canvas.height);
-        ctx.drawImage(backgroundImg2.current, bgX2.current + canvas.width, 0, canvas.width, canvas.height);
-      }
-
-      // Draw decorative fish
-      decoFish.current.forEach(f => {
-        const img = f.type === 'koi' ? koiImg.current : sharkImg.current;
-        if (img.complete) {
-          ctx.globalAlpha = 0.6; // Làm mờ nhẹ để sinh động
-          ctx.drawImage(img, f.x, f.y, f.size, f.size * 0.6);
-          ctx.globalAlpha = 1.0;
-        }
-      });
-
-      // Draw ground (Ocean surface/bottom)
-      ctx.fillStyle = "rgba(58, 158, 219, 0.3)";
-      ctx.fillRect(0, canvas.height - GROUND_HEIGHT, canvas.width, GROUND_HEIGHT);
-
-      // Draw obstacles (Ocean waves)
-      pipes.current.forEach((pipe) => {
-        const pipeY = canvas.height - GROUND_HEIGHT - pipe.height;
-        if (waveImg.current.complete) {
-          ctx.drawImage(waveImg.current, pipe.x, pipeY, PIPE_WIDTH, pipe.height + 10);
-        } else {
-          ctx.fillStyle = "#FFFFFF";
-          ctx.fillRect(pipe.x, pipeY, PIPE_WIDTH, pipe.height);
-        }
-      });
-
-      // Draw fish character with rotation
-      ctx.save();
-      const centerX = 100 + FISH_SIZE / 2;
-      const centerY = fishY.current + FISH_SIZE / 2;
-      ctx.translate(centerX, centerY);
-      ctx.rotate(fishRotation.current);
-
-      if (mascotImg.current.complete) {
-        ctx.drawImage(mascotImg.current, -FISH_SIZE / 2, -FISH_SIZE / 2, FISH_SIZE, FISH_SIZE);
-      } else {
-        ctx.fillStyle = "#f1c40f";
-        ctx.fillRect(-FISH_SIZE / 2, -FISH_SIZE / 2, FISH_SIZE, FISH_SIZE);
-      }
-      ctx.restore();
-    };
+    const ctx = canvas.getContext("2d", { alpha: false });
 
     const loop = () => {
-      update();
-      draw();
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      if (gameState === "PLAYING") {
+        const groundY = canvas.height - GROUND_HEIGHT - FISH_SIZE + 10;
+        fishVelocity.current += GRAVITY;
+        fishY.current += fishVelocity.current;
+        if (fishY.current >= groundY) { fishY.current = groundY; fishVelocity.current = 0; }
+        
+        const currentSpeed = BASE_PIPE_SPEED + Math.floor(score / 12) * 0.6;
+        bgX1.current = (bgX1.current - currentSpeed * 0.3) % canvas.width;
+        bgX2.current = (bgX2.current - currentSpeed * 0.6) % canvas.width;
+
+        if (pipes.current.length === 0 || pipes.current[pipes.current.length - 1].x < canvas.width - PIPE_SPACING) {
+          pipes.current.push({ x: canvas.width, height: Math.random() * 40 + 70, passed: false });
+        }
+
+        pipes.current.forEach((pipe) => {
+          pipe.x -= currentSpeed;
+          const fH = { x: 100 + HITBOX_PADDING, y: fishY.current + HITBOX_PADDING, w: FISH_SIZE - HITBOX_PADDING*2, h: FISH_SIZE - HITBOX_PADDING*2 };
+          const pH = { x: pipe.x + 10, y: canvas.height - GROUND_HEIGHT - pipe.height + 15, w: PIPE_WIDTH - 20, h: pipe.height - 15 };
+          
+          if (fH.x < pH.x + pH.w && fH.x + fH.w > pH.x && fH.y < pH.y + pH.h && fH.y + fH.h > pH.y) {
+            setGameState("GAME_OVER");
+          }
+          if (!pipe.passed && pipe.x < 100) { 
+            pipe.passed = true; 
+            setScore(s => s + 1); 
+            setIsScoring(true); 
+            setTimeout(() => setIsScoring(false), 200); 
+          }
+        });
+        pipes.current = pipes.current.filter(p => p.x > -PIPE_WIDTH);
+        bubbles.current.forEach(b => { b.y -= b.speed; if (b.y < -20) b.y = canvas.height + 20; });
+        particles.current.forEach((p, i) => { p.x += p.vx; p.y += p.vy; p.life -= 0.02; if(p.life <= 0) particles.current.splice(i, 1); });
+      }
+
+      // VẼ GIAO DIỆN LÊN CANVAS
+      ctx.fillStyle = "#0e4b75";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      if (imgs.current.bg1.complete) {
+        ctx.drawImage(imgs.current.bg1, bgX1.current | 0, 0, canvas.width, canvas.height);
+        ctx.drawImage(imgs.current.bg1, (bgX1.current + canvas.width) | 0, 0, canvas.width, canvas.height);
+      }
+      if (imgs.current.bg2.complete) {
+        ctx.drawImage(imgs.current.bg2, bgX2.current | 0, 0, canvas.width, canvas.height);
+        ctx.drawImage(imgs.current.bg2, (bgX2.current + canvas.width) | 0, 0, canvas.width, canvas.height);
+      }
+
+      bubbles.current.forEach(b => {
+        ctx.beginPath(); ctx.arc(b.x | 0, b.y | 0, b.size, 0, 6.28);
+        ctx.fillStyle = `rgba(255, 255, 255, ${b.opacity})`; ctx.fill();
+      });
+
+      pipes.current.forEach((p) => {
+        if (imgs.current.wave.complete) ctx.drawImage(imgs.current.wave, p.x | 0, (canvas.height - GROUND_HEIGHT - p.height) | 0, PIPE_WIDTH, p.height + 15);
+      });
+
+      ctx.save();
+      ctx.translate((100 + FISH_SIZE / 2) | 0, (fishY.current + FISH_SIZE / 2) | 0);
+      if (imgs.current.mascot.complete) ctx.drawImage(imgs.current.mascot, (-FISH_SIZE / 2) | 0, (-FISH_SIZE / 2) | 0, FISH_SIZE, FISH_SIZE);
+      ctx.restore();
+
       frameId.current = requestAnimationFrame(loop);
     };
-
-    if (gameState === "PLAYING") {
-      frameId.current = requestAnimationFrame(loop);
-    } else {
-      draw();
-    }
-
+    frameId.current = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(frameId.current);
   }, [gameState, score]);
 
-  useEffect(() => {
-    if (score > highScore) {
-      setHighScore(score);
-    }
-  }, [score, highScore]);
+  useEffect(() => { if (score > highScore) setHighScore(score); }, [score]);
 
   return (
-    <Page className="game-page-container p-0 overflow-hidden" style={{ backgroundImage: `url(${bgMain})`, backgroundSize: 'cover' }}>
-      <Box className="relative w-full h-full flex flex-col items-center justify-center">
-        <Box className="absolute top-10 left-0 w-full text-center z-10 pointer-events-none">
-          <Text className="text-white text-4xl font-black italic drop-shadow-lg">
-            {score}
-          </Text>
+    <Page className="game-page-container p-0 overflow-hidden">
+      <div className="scanline"></div>
+
+      {/* Header Logo */}
+      <Box className="logo-game-header absolute top-0 w-full">
+        <Text className="logo-main-text-game">HITO</Text>
+        <Text className="logo-main-text-game" style={{ lineHeight: "0.8" }}>ADVENTURE</Text>
+        <Box className="logo-sub-pill-game">
+          <Text className="logo-sub-text-game">by HTO Group</Text>
+        </Box>
+      </Box>
+
+      <Box className="relative w-full h-full" onClick={jump}>
+        {/* Điểm số đang chơi */}
+        <Box className="absolute top-40 w-full flex justify-center z-10 pointer-events-none">
+          <div className={`score-container ${isScoring ? "score-pop" : ""}`}>
+            <Text className="text-white text-6xl font-black italic drop-shadow-md">{score}</Text>
+          </div>
         </Box>
 
-        <Box className="w-full h-full bg-transparent" onClick={jump}>
-          <canvas ref={canvasRef} className="block w-full h-full" />
-        </Box>
+        <canvas ref={canvasRef} className="block w-full h-full" />
 
+        {/* POPUP TRẠNG THÁI */}
         {gameState !== "PLAYING" && (
-          <Box className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center z-20 p-6">
-            <Box className="bg-white rounded-3xl p-8 w-full max-w-xs text-center shadow-2xl">
-              <Text className="text-[#0e4b75] font-black text-3xl uppercase italic mb-4">
-                {gameState === "START" ? "HITO OCEAN" : "GAME OVER"}
+          <Box className="absolute inset-0 bg-[#0e4b75]/50 backdrop-blur-sm flex items-center justify-center z-20 p-6">
+            <Box className="bg-white rounded-[50px] p-8 w-full max-w-xs text-center shadow-2xl border-[5px] border-[#3a9edb]">
+              <Text className="text-[#0e4b75] font-black text-3xl uppercase italic mb-4 tracking-tighter">
+                {gameState === "START" ? "SẴN SÀNG?" : "KẾT THÚC"}
               </Text>
               
               {gameState === "GAME_OVER" && (
-                <Box className="mb-6">
-                  <Text className="text-gray-500 font-bold uppercase text-xs">Điểm số</Text>
-                  <Text className="text-[#3a9edb] text-5xl font-black italic">{score}</Text>
-                  <Text className="text-gray-400 font-bold text-sm mt-2">Kỷ lục: {highScore}</Text>
+                <Box className="mb-6 bg-blue-50 rounded-[30px] py-4 border-2 border-blue-100">
+                  <Text className="text-[#3a9edb] text-6xl font-black italic">{score}</Text>
+                  <Text className="text-gray-400 font-bold text-xs mt-1 uppercase">Kỷ lục: {highScore}</Text>
                 </Box>
               )}
 
               {gameState === "START" && (
-                <Text className="text-gray-600 font-medium mb-8">
-                  Chạm để nhảy qua những con sóng dữ!
-                </Text>
+                <Box className="mb-6 text-center flex flex-col items-center">
+                  <img src={mascot} className="w-24 mb-4" alt="Mascot" />
+                  <Text className="text-gray-500 font-bold px-4 text-xs uppercase tracking-wider">Vượt sóng dữ - Tích điểm đổi quà!</Text>
+                </Box>
               )}
 
-              <Box className="space-y-3">
-                <Button fullWidth className="bg-[#3a9edb] rounded-full font-bold h-12 text-lg shadow-lg" onClick={resetGame}>
-                  {gameState === "START" ? "BẮT ĐẦU" : "CHƠI LẠI"}
-                </Button>
-                <Button fullWidth variant="secondary" className="rounded-full font-bold h-12 text-gray-500" onClick={() => navigate("/")}>
-                  VỀ TRANG CHỦ
-                </Button>
+              <Box className="space-y-4">
+                {/* 1. Nếu đang ở màn hình Bắt đầu (START) */}
+                {gameState === "START" && (
+                  <Button className="btn-hito-primary" onClick={resetGame}>
+                    CHƠI NGAY
+                  </Button>
+                )}
+
+                {/* 2. Nếu đã thua (GAME_OVER) */}
+                {gameState === "GAME_OVER" && (
+                  <>
+                    <Button className="btn-hito-primary" onClick={resetGame}>
+                      THỬ LẠI
+                    </Button>
+                    <Button 
+                      className="btn-hito-secondary" 
+                      onClick={() => navigate("/result", { state: { score: score } })}
+                    >
+                      TIẾP TỤC
+                    </Button>
+                  </>
+                )}
               </Box>
             </Box>
           </Box>

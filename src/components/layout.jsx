@@ -12,6 +12,7 @@ import {
 import HomePage from "../pages/index";
 import UserInfoPage from "../pages/user-info";
 import GamePage from "../pages/game"; // Thêm dòng này
+import ResultPage from "../pages/result"; // Thêm dòng này
 
 const Layout = () => {
   return (
@@ -27,6 +28,10 @@ const Layout = () => {
 
             {/* 3. Thêm Route cho trang Game */}
             <Route path="/game" element={<GamePage />} />
+
+            {/* 4. Thêm Route cho trang Result */}
+            <Route path="/result" element={<ResultPage />} />
+            
           </AnimationRoutes>
         </ZMPRouter>
       </SnackbarProvider>
