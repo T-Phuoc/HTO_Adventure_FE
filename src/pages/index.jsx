@@ -97,6 +97,7 @@ const handlePlayNow = async () => {
 
         <Box className="w-full">
           <Button className="btn-play-now" onClick={handlePlayNow}>CHƠI NGAY</Button>
+          <Button className="btn-lucky-spin" onClick={() => navigate("/lucky-spin")}>VÒNG QUAY MAY MẮN</Button>
         </Box>
       </Box>
 
