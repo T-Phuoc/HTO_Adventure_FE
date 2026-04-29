@@ -27,6 +27,26 @@ const GamePage = () => {
   const PIPE_SPACING = 650;
   const HITBOX_PADDING = 55;
   const GROUND_HEIGHT = -10;
+  const DIFFICULTY = {
+    BASE_SPEED: BASE_PIPE_SPEED,
+    MAX_SPEED: 8.5,
+    BASE_SPACING: PIPE_SPACING,
+    MIN_SPACING: 420,
+    SCORE_STEP: 5,
+    TIME_STEP_MS: 15000,
+    SPEED_STEP: 0.35,
+    SPACING_STEP: 10,
+    PEAK_INTERVAL: 10,
+    PEAK_DURATION: 1000,
+    PEAK_SPEED_BONUS: 0.9,
+    PEAK_SPACING_PENALTY: 60,
+    SPACING_LAND_BUFFER_FRAMES: 12,
+    PIPE_MIN_HEIGHT: 70,
+    PIPE_MAX_HEIGHT_HARD_CAP: 170,
+    PIPE_MAX_GROWTH_PER_LEVEL: 4,
+    PIPE_MIN_GROWTH_PER_LEVEL: 1.5,
+    PIPE_SAFETY_MARGIN: 15
+  };
 
   const fishY = useRef(0);
   const fishVelocity = useRef(0);
@@ -36,6 +56,48 @@ const GamePage = () => {
   const bgX1 = useRef(0);
   const bgX2 = useRef(0);
   const frameId = useRef(null);
+  const startTime = useRef(0);
+  const peakUntil = useRef(0);
+  const lastPeakScore = useRef(0);
+
+  const getDifficultyState = (scoreValue, elapsedMs, now) => {
+    const levelFromScore = Math.floor(scoreValue / DIFFICULTY.SCORE_STEP);
+    const levelFromTime = Math.floor(elapsedMs / DIFFICULTY.TIME_STEP_MS);
+    const level = levelFromScore + levelFromTime;
+
+    const isPeak = now < peakUntil.current;
+
+    let speed = DIFFICULTY.BASE_SPEED + level * DIFFICULTY.SPEED_STEP;
+    if (isPeak) speed += DIFFICULTY.PEAK_SPEED_BONUS;
+    speed = Math.min(speed, DIFFICULTY.MAX_SPEED);
+
+    let spacing = DIFFICULTY.BASE_SPACING - level * DIFFICULTY.SPACING_STEP;
+    if (isPeak) spacing -= DIFFICULTY.PEAK_SPACING_PENALTY;
+    spacing = Math.max(spacing, DIFFICULTY.MIN_SPACING);
+
+    const airTimeFrames = Math.ceil((2 * Math.abs(JUMP_STRENGTH)) / GRAVITY);
+    const physicsMinSpacing = Math.floor(speed * (airTimeFrames + DIFFICULTY.SPACING_LAND_BUFFER_FRAMES));
+    spacing = Math.max(spacing, physicsMinSpacing);
+
+    const maxRise = (JUMP_STRENGTH * JUMP_STRENGTH) / (2 * GRAVITY);
+    const maxClearablePipeHeight = Math.floor(maxRise + 5 - DIFFICULTY.PIPE_SAFETY_MARGIN);
+    const pipeMaxHeight = Math.min(
+      DIFFICULTY.PIPE_MAX_HEIGHT_HARD_CAP,
+      maxClearablePipeHeight,
+      Math.floor(110 + level * DIFFICULTY.PIPE_MAX_GROWTH_PER_LEVEL)
+    );
+    const pipeMinHeight = Math.min(
+      pipeMaxHeight - 10,
+      Math.floor(DIFFICULTY.PIPE_MIN_HEIGHT + level * DIFFICULTY.PIPE_MIN_GROWTH_PER_LEVEL)
+    );
+
+    return {
+      speed,
+      spacing,
+      pipeMinHeight: Math.max(DIFFICULTY.PIPE_MIN_HEIGHT, pipeMinHeight),
+      pipeMaxHeight: Math.max(DIFFICULTY.PIPE_MIN_HEIGHT + 10, pipeMaxHeight)
+    };
+  };
 
   const imgs = useRef({
     mascot: new Image(), bg1: new Image(), bg2: new Image(),
@@ -64,6 +126,9 @@ const GamePage = () => {
     if (canvas) fishY.current = canvas.height - GROUND_HEIGHT - FISH_SIZE + 10;
     fishVelocity.current = 0; pipes.current = [];
     particles.current = []; setScore(0); setGameState("PLAYING");
+    startTime.current = performance.now();
+    peakUntil.current = 0;
+    lastPeakScore.current = 0;
   };
 
   const jump = () => {
@@ -119,17 +184,26 @@ const GamePage = () => {
       canvas.height = window.innerHeight;
 
       if (gameState === "PLAYING") {
+        const now = performance.now();
+        const elapsedMs = startTime.current ? now - startTime.current : 0;
+        if (score > 0 && score % DIFFICULTY.PEAK_INTERVAL === 0 && score !== lastPeakScore.current) {
+          lastPeakScore.current = score;
+          peakUntil.current = now + DIFFICULTY.PEAK_DURATION;
+        }
+
         const groundY = canvas.height - GROUND_HEIGHT - FISH_SIZE + 10;
         fishVelocity.current += GRAVITY;
         fishY.current += fishVelocity.current;
         if (fishY.current >= groundY) { fishY.current = groundY; fishVelocity.current = 0; }
         
-        const currentSpeed = BASE_PIPE_SPEED + Math.floor(score / 7) * 0.6;
+        const difficulty = getDifficultyState(score, elapsedMs, now);
+        const currentSpeed = difficulty.speed;
         bgX1.current = (bgX1.current - currentSpeed * 0.3) % canvas.width;
         bgX2.current = (bgX2.current - currentSpeed * 0.6) % canvas.width;
 
-        if (pipes.current.length === 0 || pipes.current[pipes.current.length - 1].x < canvas.width - PIPE_SPACING) {
-          pipes.current.push({ x: canvas.width, height: Math.random() * 40 + 70, passed: false });
+        if (pipes.current.length === 0 || pipes.current[pipes.current.length - 1].x < canvas.width - difficulty.spacing) {
+          const height = Math.random() * (difficulty.pipeMaxHeight - difficulty.pipeMinHeight) + difficulty.pipeMinHeight;
+          pipes.current.push({ x: canvas.width, height, passed: false });
         }
 
         pipes.current.forEach((pipe) => {

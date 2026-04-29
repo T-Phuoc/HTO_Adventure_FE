@@ -16,7 +16,10 @@ function HomePage() {
   const [showGuide, setShowGuide] = useState(false);
 
   // Logic xử lý khi nhấn nút Chơi Ngay
-const handlePlayNow = async () => {
+const handlePlayNow = async (target = "/game") => {
+    // TRỈNH: Lưu trang đích ngay lập tức để UserInfo biết chuyển hướng đi đâu, kể cả khi lỗi API
+    localStorage.setItem("hito_target_page", target);
+
     try {
       await followOA({ id: "2112176407138597287" });
       await authorize({ scopes: ["scope.userInfo", "scope.userPhonenumber"] });
@@ -66,6 +69,7 @@ const handlePlayNow = async () => {
       navigate("/user-info");
     } catch (e) {
       console.error("🔥 Lỗi luồng xử lý:", e);
+      // Dù lỗi vẫn cho qua trang điền thông tin
       navigate("/user-info");
     }
   };
@@ -96,7 +100,8 @@ const handlePlayNow = async () => {
         </Box>
 
         <Box className="w-full">
-          <Button className="btn-play-now" onClick={handlePlayNow}>CHƠI NGAY</Button>
+          <Button className="btn-play-now" onClick={() => handlePlayNow("/game")}>CHƠI NGAY</Button>
+          <Button className="btn-lucky-spin" onClick={() => handlePlayNow("/lucky-spin")}>VÒNG QUAY MAY MẮN</Button>
         </Box>
       </Box>
 

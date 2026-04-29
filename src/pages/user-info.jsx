@@ -15,9 +15,16 @@ function UserInfoPage() {
     email: "", 
     birthday: "01/01/2000",
   });
+  const [targetPage, setTargetPage] = useState("/game");
 
   useEffect(() => {
-    // TRỈNH: Lấy dữ liệu đã được HomePage quét sẵn
+    // 1. Xác định trang đích (Game chính hoặc Vòng quay)
+    const savedTarget = localStorage.getItem("hito_target_page");
+    if (savedTarget) {
+      setTargetPage(savedTarget);
+    }
+
+    // 2. Lấy dữ liệu đã được HomePage quét sẵn (nếu có)
     const savedData = localStorage.getItem("hito_zalo_data");
     if (savedData) {
       const parsed = JSON.parse(savedData);
@@ -45,11 +52,13 @@ function UserInfoPage() {
       phone: user.phone,
       email: user.email,
       birthday: user.birthday,
-      form_type: "Hito_Adventure",
+      form_type: targetPage === "/lucky-spin" ? "Lucky_Spin" : "Hito_Adventure",
       created_at: new Date().toISOString()
     }));
 
-    navigate("/game");
+    // Xóa target sau khi đã sử dụng
+    localStorage.removeItem("hito_target_page");
+    navigate(targetPage);
   };
 
   return (
