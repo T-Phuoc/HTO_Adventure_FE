@@ -9,14 +9,16 @@ const LuckySpinPage = () => {
   const [isSpinning, setIsSpinning] = useState(false);
   const [resultModal, setResultModal] = useState(false);
   const [prize, setPrize] = useState(null);
+  const [resultText, setResultText] = useState("");
   const canvasRef = useRef(null);
   const currentAngle = useRef(0); // Lưu trữ góc quay hiện tại để quay tiếp tục
   const frameId = useRef(null);
+  const isTestMode = (import.meta?.env?.DEV ?? false) || localStorage.getItem("hito_skip_info") === "1";
 
   // Logic gửi dữ liệu về backend
   const handleClaimPrize = () => {
     const savedData = localStorage.getItem("hito_player_data");
-    if (savedData && prize) {
+    if (savedData && prize?.isPrize && !isTestMode) {
       const userData = JSON.parse(savedData);
       const payload = {
         ...userData,
@@ -37,17 +39,67 @@ const LuckySpinPage = () => {
         });
     }
     setResultModal(false);
-    navigate("/", { replace: true });
+    if (!isTestMode) navigate("/", { replace: true });
   };
 
   // Danh sách phần thưởng và tỉ lệ (tổng tỉ lệ nên là 100)
   const rewards = [
-    { id: 1, label: "Phần thưởng 1", color: "#3a9edb", weight: 30 }, // Tỉ lệ 30%
-    { id: 2, label: "Phần thưởng 2", color: "#ffffff", weight: 20 }, 
-    { id: 3, label: "Phần thưởng 3", color: "#f9d423", weight: 10 }, 
-    { id: 4, label: "Phần thưởng 4", color: "#ffffff", weight: 15 }, 
-    { id: 5, label: "Phần thưởng 5", color: "#3a9edb", weight: 15 }, 
-    { id: 6, label: "Phần thưởng 6", color: "#ffffff", weight: 10 }, 
+    {
+      id: 1,
+      label: "Gối ôm cổ",
+      color: "#3a9edb",
+      weight: 10,
+      isPrize: true,
+      message: "Congrats! Bạn đã nhận GỐI ÔM CỔ – ready cho những chuyến bay ‘xịn sò’ phía trước"
+    },
+    {
+      id: 2,
+      label: "Lời chúc 1",
+      color: "#ffffff",
+      weight: 18,
+      isPrize: false,
+      message: "Chúc bạn sớm chạm tay đến giấc mơ du học và định cư mà bạn luôn ấp ủ 🌏"
+    },
+    {
+      id: 3,
+      label: "Lời chúc 2",
+      color: "#f9d423",
+      weight: 14,
+      isPrize: false,
+      message: "Một vòng quay nhỏ – một bước tiến lớn trên hành trình vươn ra thế giới ✈️"
+    },
+    {
+      id: 4,
+      label: "Lời chúc 3",
+      color: "#ffffff",
+      weight: 14,
+      isPrize: false,
+      message: "HTO chúc bạn luôn vững tin trên hành trình xây dựng tương lai tại nước ngoài 💼"
+    },
+    {
+      id: 5,
+      label: "Lời chúc 4",
+      color: "#3a9edb",
+      weight: 12,
+      isPrize: false,
+      message: "Cơ hội toàn cầu đang gọi tên bạn – sẵn sàng bứt phá chưa? 🚀"
+    },
+    {
+      id: 6,
+      label: "Lời chúc 5",
+      color: "#ffffff",
+      weight: 10,
+      isPrize: false,
+      message: "Hành trình vạn dặm bắt đầu từ một vòng quay – chúc bạn sớm đạt được mục tiêu lớn 🎯"
+    },
+    {
+      id: 7,
+      label: "Lời chúc 6",
+      color: "#f9d423",
+      weight: 22,
+      isPrize: false,
+      message: "Một ngày không xa, bạn sẽ tự hào về quyết định bắt đầu từ hôm nay 🏡"
+    },
   ];
 
   const numRewards = rewards.length;
@@ -64,41 +116,71 @@ const LuckySpinPage = () => {
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
     const radius = Math.min(centerX, centerY) - 10;
+    const fontSize = Math.max(12, Math.floor(radius * 0.1));
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     rewards.forEach((reward, i) => {
       const angle = rotation + i * arcSize;
+      const hue = (i * 360) / numRewards;
+      const sliceGradient = ctx.createRadialGradient(
+        centerX,
+        centerY,
+        radius * 0.12,
+        centerX,
+        centerY,
+        radius
+      );
+      sliceGradient.addColorStop(0, `hsla(${hue}, 95%, 75%, 1)`);
+      sliceGradient.addColorStop(0.55, `hsla(${(hue + 18) % 360}, 95%, 58%, 1)`);
+      sliceGradient.addColorStop(1, `hsla(${hue}, 95%, 42%, 1)`);
       
-      // Vẽ rẻ quạt
       ctx.beginPath();
-      ctx.fillStyle = reward.color;
+      ctx.fillStyle = sliceGradient;
       ctx.moveTo(centerX, centerY);
       ctx.arc(centerX, centerY, radius, angle, angle + arcSize);
       ctx.lineTo(centerX, centerY);
       ctx.fill();
-      ctx.strokeStyle = "#0e4b75";
-      ctx.lineWidth = 2;
+
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.75)";
+      ctx.lineWidth = 3;
       ctx.stroke();
 
-      // Vẽ chữ
       ctx.save();
       ctx.translate(centerX, centerY);
       ctx.rotate(angle + arcSize / 2);
       ctx.textAlign = "right";
-      ctx.fillStyle = reward.color === "#ffffff" ? "#0e4b75" : "white";
-      ctx.font = "bold 14px Arial";
-      ctx.fillText(reward.label, radius - 20, 5);
+      ctx.shadowColor = "rgba(0, 0, 0, 0.35)";
+      ctx.shadowBlur = 10;
+      ctx.fillStyle = hue > 40 && hue < 80 ? "#0e4b75" : "white";
+      ctx.font = `bold ${fontSize}px Arial`;
+      ctx.fillText(reward.label, radius - 24, 5);
       ctx.restore();
     });
 
+    const ringGradient = ctx.createRadialGradient(
+      centerX,
+      centerY,
+      radius * 0.6,
+      centerX,
+      centerY,
+      radius + 6
+    );
+    ringGradient.addColorStop(0, "rgba(255, 255, 255, 0.15)");
+    ringGradient.addColorStop(1, "rgba(255, 255, 255, 0.95)");
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+    ctx.strokeStyle = ringGradient;
+    ctx.lineWidth = 6;
+    ctx.stroke();
+
     // Vẽ tâm vòng quay
     ctx.beginPath();
-    ctx.arc(centerX, centerY, 15, 0, 2 * Math.PI);
+    ctx.arc(centerX, centerY, 18, 0, 2 * Math.PI);
     ctx.fillStyle = "#0e4b75";
     ctx.fill();
     ctx.strokeStyle = "white";
-    ctx.lineWidth = 3;
+    ctx.lineWidth = 4;
     ctx.stroke();
   };
 
@@ -149,7 +231,9 @@ const LuckySpinPage = () => {
         frameId.current = requestAnimationFrame(animate);
       } else {
         setIsSpinning(false);
-        setPrize(rewards[selectedIndex]);
+        const selectedReward = rewards[selectedIndex];
+        setPrize(selectedReward);
+        setResultText(selectedReward?.message || selectedReward?.label || "");
         setResultModal(true);
       }
     };
@@ -179,12 +263,12 @@ const LuckySpinPage = () => {
               filter: 'drop-shadow(0px 2px 2px rgba(0,0,0,0.2))'
             }} />
             
-            <Box className="rounded-full p-2 bg-[#0e4b75] shadow-xl border-4 border-white w-full max-w-[300px]">
+            <Box className="rounded-full p-2 bg-[#0e4b75] shadow-xl border-4 border-white w-full max-w-[360px]">
               <canvas 
                 ref={canvasRef} 
-                width={300} 
-                height={300}
-                style={{ width: "100%", height: "auto", maxWidth: "280px" }}
+                width={360} 
+                height={360}
+                style={{ width: "100%", height: "auto", maxWidth: "340px" }}
                 className="rounded-full"
               />
             </Box>
@@ -212,37 +296,34 @@ const LuckySpinPage = () => {
               VỀ TRANG CHỦ
             </Button>
           </Box>
-
-          {/* Trang trí góc - Lối vào bí mật game 777 */}
-          <Box 
-            className="absolute -top-4 -left-4 w-16 h-16 bg-[#f9d423] rounded-full border-4 border-white flex items-center justify-center shadow-lg transform -rotate-12 cursor-pointer active:scale-90 transition-transform"
-            onClick={() => navigate("/777spin")}
-          >
-            <Text className="text-[#0e4b75] font-black text-2xl">★</Text>
-          </Box>
         </Box>
       </Box>
 
       <Modal
         visible={resultModal}
-        title="CHÚC MỪNG!"
+        title={prize?.isPrize ? "CHÚC MỪNG!" : "CHÚC BẠN MAY MẮN!"}
         onClose={() => setResultModal(false)}
         verticalActions
       >
         <Box className="p-6 text-center">
-          <Text className="text-gray-500 font-bold uppercase text-xs mb-2">Bạn đã trúng</Text>
-          <Text className="text-[#3a9edb] text-3xl font-black italic mb-6">
-            {prize?.label}
+          <Text className="text-gray-500 font-bold uppercase text-xs mb-2">
+            {prize?.isPrize ? "Bạn đã trúng" : "Bạn nhận được lời chúc"}
+          </Text>
+          <Text className={`text-3xl font-black italic mb-6 ${prize?.isPrize ? "text-[#3a9edb]" : "text-[#0e4b75]"}`}>
+            {prize?.isPrize ? prize?.label : prize?.label}
+          </Text>
+          <Text className="text-gray-600 font-semibold text-sm mb-6">
+            {resultText}
           </Text>
           <Box className="w-24 h-24 bg-[#f0f9ff] rounded-full mx-auto flex items-center justify-center mb-6 border-4 border-[#3a9edb] animate-bounce">
-            <Text className="text-4xl">🎁</Text>
+            <Text className="text-4xl">{prize?.isPrize ? "🎁" : "🍀"}</Text>
           </Box>
           <Button 
             fullWidth 
-            className="bg-[#3a9edb] rounded-full font-bold h-12 text-white shadow-lg"
-            onClick={handleClaimPrize}
+            className={`${prize?.isPrize ? "bg-[#3a9edb] text-white" : "bg-[#f9d423] text-[#0e4b75]"} rounded-full font-bold h-12 shadow-lg`}
+            onClick={prize?.isPrize ? handleClaimPrize : () => setResultModal(false)}
           >
-            TUYỆT VỜI!
+            {prize?.isPrize ? "NHẬN QUÀ" : "QUAY TIẾP"}
           </Button>
         </Box>
       </Modal>

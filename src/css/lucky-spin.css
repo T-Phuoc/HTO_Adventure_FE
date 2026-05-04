@@ -1,0 +1,199 @@
+.lucky-spin-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.lucky-spin-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.lucky-spin-card {
+  width: 100%;
+  max-width: 24rem;
+  position: relative;
+  text-align: center;
+  padding: 32px;
+  border-radius: 3rem;
+  border: 4px solid #ffffff;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.lucky-spin-title {
+  color: #0e4b75;
+  font-weight: 900;
+  font-size: 30px;
+  text-transform: uppercase;
+  font-style: italic;
+  margin-bottom: 8px;
+}
+
+.lucky-spin-subtitle {
+  color: #3a9edb;
+  font-weight: 900;
+  font-size: 20px;
+  text-transform: uppercase;
+  font-style: italic;
+  margin-bottom: 32px;
+}
+
+.lucky-spin-wheel-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 32px;
+}
+
+.lucky-spin-pointer {
+  position: absolute;
+  top: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  width: 0;
+  height: 0;
+  border-left: 15px solid transparent;
+  border-right: 15px solid transparent;
+  border-top: 30px solid #ff4757;
+  filter: drop-shadow(0px 2px 2px rgba(0, 0, 0, 0.2));
+}
+
+.lucky-spin-wheel-frame {
+  width: 100%;
+  max-width: 360px;
+  padding: 8px;
+  border-radius: 9999px;
+  background: #0e4b75;
+  border: 4px solid #ffffff;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.18);
+}
+
+.lucky-spin-canvas {
+  width: 100%;
+  height: auto;
+  max-width: 340px;
+  border-radius: 9999px;
+}
+
+.lucky-spin-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.lucky-spin-primary-btn {
+  height: 56px;
+  border-radius: 9999px;
+  font-weight: 900;
+  font-size: 20px;
+  background: #f9d423;
+  color: #0e4b75;
+  border: 2px solid #c58f1f;
+  border-bottom-width: 4px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.15);
+  transition: transform 0.12s ease, opacity 0.12s ease, filter 0.12s ease;
+}
+
+.lucky-spin-primary-btn:active {
+  transform: translateY(4px);
+  border-bottom-width: 2px;
+}
+
+.lucky-spin-primary-btn.is-disabled {
+  background: #9ca3af;
+  border-color: #6b7280;
+  opacity: 0.7;
+  box-shadow: none;
+}
+
+.lucky-spin-secondary-btn {
+  height: 48px;
+  border-radius: 9999px;
+  font-weight: 700;
+  color: #6b7280;
+}
+
+.lucky-spin-modal-content {
+  padding: 24px;
+  text-align: center;
+}
+
+.lucky-spin-modal-label {
+  color: #6b7280;
+  font-weight: 800;
+  text-transform: uppercase;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+.lucky-spin-modal-title {
+  font-weight: 900;
+  font-style: italic;
+  font-size: 30px;
+  margin-bottom: 16px;
+}
+
+.lucky-spin-modal-title.is-win {
+  color: #3a9edb;
+}
+
+.lucky-spin-modal-title.is-lose {
+  color: #0e4b75;
+}
+
+.lucky-spin-modal-message {
+  color: #4b5563;
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 24px;
+}
+
+.lucky-spin-modal-icon {
+  width: 96px;
+  height: 96px;
+  border-radius: 9999px;
+  margin: 0 auto 24px;
+  background: #f0f9ff;
+  border: 4px solid #3a9edb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: lucky-spin-bounce 1s infinite;
+}
+
+.lucky-spin-modal-emoji {
+  font-size: 36px;
+}
+
+.lucky-spin-modal-btn {
+  height: 48px;
+  border-radius: 9999px;
+  font-weight: 700;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.15);
+}
+
+.lucky-spin-modal-btn.is-win {
+  background: #3a9edb;
+  color: #ffffff;
+}
+
+.lucky-spin-modal-btn.is-lose {
+  background: #f9d423;
+  color: #0e4b75;
+}
+
+@keyframes lucky-spin-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}

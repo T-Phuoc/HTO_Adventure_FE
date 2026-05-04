@@ -27,12 +27,12 @@
 .logo-text-large {
   /* 1. Gradient đồng bộ: Vàng sáng sang Xanh đậm #0e4b75 */
   background: linear-gradient(180deg, #ffffff 100%, #f9d423 40%);
+  color: #f9d423;
   
   /* Kỹ thuật đổ màu vào chữ (Bắt buộc phải có) */
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  text-fill-color: transparent;
 
   /* 2. Giữ nguyên kích thước riêng của logo-text-large */
   font-weight: 1000;

@@ -26,12 +26,12 @@
 
 .logo-main-text {
   /* 1. Gradient từ Vàng sang Xanh đậm #0e4b75 */
-  background: linear-gradient(180deg, #fce27a 0%, #f9d423 40%, );
+  background: linear-gradient(180deg, #fce27a 0%, #f9d423 40%, #0e4b75 100%);
+  color: #f9d423;
   
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  text-fill-color: transparent;
 
   font-weight: 900;
   font-size: 58px;
